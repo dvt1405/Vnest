@@ -21,6 +21,16 @@ class LocationAdapter(val context: Context) :
         val BUTTON_ITEM = 1
     }
 
+    var isLoading: Boolean = false
+        set(value) {
+            field = value
+            if (value) {
+                notifyItemRemoved(itemCount)
+            } else {
+                notifyItemInserted(itemCount)
+            }
+        }
+
     interface Listenner {
         fun onButtonClick()
     }
@@ -35,6 +45,11 @@ class LocationAdapter(val context: Context) :
         list.clear()
         list.addAll(newList)
         notifyDataSetChanged()
+    }
+
+    fun add(newList: List<Location>) {
+        list.addAll(newList)
+        notifyItemRangeInserted(list.size - newList.size, newList.size)
     }
 
     fun show() {
@@ -70,28 +85,18 @@ class LocationAdapter(val context: Context) :
         override fun onClick(view: View?) {
             listennerRef.get()?.onButtonClick()
         }
-//        var listennerRef: WeakReference<Listenner>
-
-//        init {
-//            listennerRef = WeakReference(listenner)
-//            addButton.setOnClickListener(this)
-//        }
-//
-//        override fun onClick(v: View?) {
-//            listennerRef.get()?.onButtonClick()
-//        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
-        when (viewType) {
+        return when (viewType) {
             LOCATION_ITEM -> {
                 val locationView = inflater.inflate(R.layout.item_location, parent, false)
-                return ItemHolder(locationView)
+                ItemHolder(locationView)
             }
             else -> {
                 val buttonView = inflater.inflate(R.layout.button, parent, false)
-                return ButtonHolder(buttonView)
+                ButtonHolder(buttonView)
             }
         }
     }
@@ -109,7 +114,6 @@ class LocationAdapter(val context: Context) :
             }
             else -> {
                 (holder as ButtonHolder).addButton.visibility = View.VISIBLE
-//                (holder as ButtonHolder).addButton.setOnClickListener { listenner }
             }
         }
     }

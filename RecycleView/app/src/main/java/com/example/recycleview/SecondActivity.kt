@@ -10,6 +10,7 @@ import com.example.recycleview.flick.FlickApi
 import com.example.recycleview.data.Location
 import com.example.recycleview.adapter.LocationAdapter
 import com.example.recycleview.data.Page
+import kotlinx.android.synthetic.main.activity_second.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -20,16 +21,14 @@ import retrofit2.converter.gson.GsonConverterFactory
 class SecondActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener,
     LocationAdapter.Listenner {
 
-
-    lateinit var name: String
-    lateinit var lagitude: String
-    lateinit var longitude: String
+    private val lagitude: String by lazy { intent.getStringExtra(MainActivity.EXTRA_TEXTLAGITUDE)!! }
+    private val longitude: String by lazy { intent.getStringExtra(MainActivity.EXTRA_TEXTLONGITUDE)!! }
+    private val name by lazy { intent.getStringExtra(MainActivity.EXTRA_TEXTNAME)!! }
     lateinit var rvLocation: RecyclerView
     lateinit var swipeRefreshLayout: SwipeRefreshLayout
-    lateinit var locationAdapter: LocationAdapter
+    private val locationAdapter: LocationAdapter by lazy { LocationAdapter(this) }
+    private lateinit var page: Page
     var count = 1
-
-    var list = ArrayList<Location>()
     val response by lazy {
         Retrofit.Builder()
             .baseUrl(MainActivity.BASE_URL)
@@ -41,21 +40,19 @@ class SecondActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_second)
-        name = intent.getStringExtra(MainActivity.EXTRA_TEXTNAME)!!
-        lagitude = intent.getStringExtra(MainActivity.EXTRA_TEXTLAGITUDE)!!
-        longitude = intent.getStringExtra(MainActivity.EXTRA_TEXTLONGITUDE)!!
         rvLocation = findViewById(R.id.rvLocation)
-        locationAdapter = LocationAdapter(this)
         locationAdapter.listenner = this
         rvLocation.adapter = locationAdapter
         rvLocation.layoutManager = LinearLayoutManager(parent)
         swipeRefreshLayout = findViewById(R.id.swipe_refresh_layout)
         swipeRefreshLayout.setOnRefreshListener(this)
-        callApi(lagitude, longitude, { loadRecycleView(it) })
-        Log.d("list", list.size.toString())
+        callApi(lagitude, longitude) {
+            page = it
+            loadRecycleView(page, true)
+        }
     }
 
-    fun callApi(lat: String, lon: String, call: (res: Page) -> Unit) {
+    private fun callApi(lat: String, lon: String, call: (res: Page) -> Unit) {
         response.getPhotos(
             MainActivity.METHOD,
             MainActivity.API_KEY,
@@ -75,33 +72,33 @@ class SecondActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener
         })
     }
 
-//    fun addToList(res: Page): List<Location> {
-//        var list = ArrayList<Location>()
-//        for (photo in res.photos.photo)
-//            list.add(Location(name, lagitude, longitude, photo.getLink()))
-//        return list
-//    }
-
-    fun loadRecycleView(res: Page) {
-        for (i in count..count + 9) {
+    private fun loadRecycleView(res: Page, addNew: Boolean = false) {
+        val list = ArrayList<Location>()
+        for (i in count..count + 19) {
+            Log.e("Count",i.toString())
             list.add(Location(name, lagitude, longitude, res.photos.photo[i].getLink()))
             Log.d("size", list.size.toString())
         }
-        locationAdapter.reloadView(list)
+        if (addNew) {
+            locationAdapter.reloadView(list)
+        } else {
+            locationAdapter.add(list)
+        }
         locationAdapter.show()
     }
 
     override fun onRefresh() {
-//        Handler(Looper.myLooper()!!).postDelayed(object : Runnable {
-//            override fun run() {
-//                callApi(lagitude, longitude, { loadRecycleView(it) })
-//            }
-//        }, 2500)
+        callApi(lagitude, longitude) {
+            count = 0
+            page = it
+            loadRecycleView(page, true)
+            swipe_refresh_layout.isRefreshing = false
+        }
     }
 
     override fun onButtonClick() {
-        count += 10
-        callApi(lagitude, longitude, { loadRecycleView(it) })
+        count += 20
+        loadRecycleView(page)
     }
 
 }
